@@ -33,7 +33,7 @@ URL = "https://mw-ult-api-proxy.dvmproduct.com/digital/login/phone/459"
 
 def send_request(phone_number):
     global request_count
-    data = {"phone": phone_number}
+    data = {"phone": f"216{phone_number}"}
     try:
         response = requests.post(URL, json=data, headers=HEADERS, timeout=5)
         # You can check response status or content here if needed
