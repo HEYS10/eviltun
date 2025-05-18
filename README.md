@@ -4,6 +4,10 @@
                                      
 ### 
 
+                                     cd eviltun
+                                     
+### 
+
                                       pip install -r requirements.txt
 
 ### 
