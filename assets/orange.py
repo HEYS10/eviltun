@@ -82,4 +82,5 @@ def main():
         for _ in range(thread_count):
             executor.submit(worker, phone_number)
 
-if __name__ == "__main
+if __name__ == "__main__":
+    main()
