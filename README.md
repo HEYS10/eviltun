@@ -1,10 +1,10 @@
-# EVILTUN OTP Flooder
 
-## Usage
+### 
 
-```bash
-pip install -r requirements.txt
+                                      pip install -r requirements.txt
+
+### 
+                                       python eviltun.py
 
 
-```bash
-python eviltun.py
+The use of the EVILTUN is COMPLETE RESPONSIBILITY of the END-USER. Developers assume NO liability and are NOT responsible for any misuse or damage caused by this program. 
