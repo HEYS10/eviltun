@@ -1,10 +1,7 @@
 # EVILTUN OTP Flooder
 
-## 🛠️ Install dependencies
+## Usage
 
 ```bash
 pip install -r requirements.txt
-
-```bash
 python eviltun.py
-
