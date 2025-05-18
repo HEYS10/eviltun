@@ -58,7 +58,7 @@ def show_counter():
 def main():
     print(Fore.YELLOW + "Orange OTP Flooder")
 
-    phone_number = input(Fore.CYAN + "Enter phone number (e.g. 21652580248): ").strip()
+    phone_number = input(Fore.CYAN + "Enter phone number (e.g. 52580248): ").strip()
     if not phone_number.isdigit() or len(phone_number) < 8:
         print(Fore.RED + "Invalid phone number.")
         return
